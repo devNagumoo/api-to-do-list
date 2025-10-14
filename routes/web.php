@@ -2,17 +2,28 @@
 
 /** @var \Laravel\Lumen\Routing\Router $router */
 
-/*
-|--------------------------------------------------------------------------
-| Application Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register all of the routes for an application.
-| It is a breeze. Simply tell Lumen the URIs it should respond to
-| and give it the Closure to call when that URI is requested.
-|
-*/
+use App\Http\Controllers\TaskController;
+use Illuminate\Http\Client\Request;
 
-$router->get('/', function () use ($router) {
-    return $router->app->version();
+
+$router->post('/login', 'AuthController@login');
+
+$router->get('/tasks', 'TaskController@index');
+$router->get('/tasks/{idTask}', 'TaskController@show');
+$router->post('/tasks', 'TaskController@store');
+$router->put('/tasks/{idTask}', 'TaskController@update');
+$router->delete('/tasks/idTask', 'TaskController@delete');
+
+
+$router->group(['prefix' => 'users'], function() use ($router){
+    $router->get('/', 'UserController@index');
+    $router->get('/{user}', 'UserController@show');
+    $router->post('/', 'UserController@store');
+    $router->put('/{user}', 'UserController@update');
+    $router->delete('/{user}', 'UserController@delete');
 });
+
+
+
+
+
