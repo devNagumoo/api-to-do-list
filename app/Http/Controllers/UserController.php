@@ -7,13 +7,14 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
 use App\Models\User;
 use App\Service\UserService;
-use App\Traits\Traits;
+use App\Traits\ApiResponse;
+use Illuminate\Support\Facades\Validator;
 use Exception;
 
 class UserController extends Controller
 {
 
-    use Traits;
+    use ApiResponse;
 
     private $service;
 
@@ -26,10 +27,7 @@ class UserController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function index()
-    {
-       
-    }
+    public function index() {}
 
     /**
      * Store a newly created resource in storage.
@@ -39,22 +37,40 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
-        try
-        {
-            $user = $this->service->createUser($request->only(['email', 'password', 'name']));
+        $validador = Validator::make($request->all(), [
+            'email' => 'required|unique:users,email',
+            'password' => 'required',
+            'name' => 'required|string'
+        ], [
+            'email.required' => 'o Email é obrigatorio',
+            'email.unique' => 'O email já está cadastrado',
+            'password.required' => 'A senha é obrigatoria?',
+            'name.required' => 'O nome é obrigatorio'
+        ]);
 
-            if(is_array($user))
-            {
-                return $this->errorsMessage($user, 'Requisição invalida', 400);
-            }
+        if ($validador->fails()) {
+            return $this->errors('Ocorream errors na validação do formulário', 400, $validador->errors()->toArray());
+        }
 
-            return $this->messageResponse('Usuario criado com sucessso.', 200,  new UserResource($user));
+        $validated = $validador->validate();
+        try {
+            $user = $this->service->createUser($validated);
 
-        }catch(Exception $e)
-        {
-            return $this->errorsMessage($e, 'Ocorreu um error ao processar a requisição', 500);
+            return $this->message(
+                'Usuario criado com sucesso',
+                201,
+                new UserResource($user)
+            );
+        } catch (Exception $e) {
+            return $this->errors(
+                'Ocorreu um erro na criação do usuario',
+                500,
+                $e->getMessage()
+            );
         }
     }
+
+
 
     /**
      * Display the specified resource.
@@ -64,7 +80,7 @@ class UserController extends Controller
      */
     public function show($user)
     {
-       return User::find($user);
+        return User::find($user);
     }
 
 
@@ -77,7 +93,7 @@ class UserController extends Controller
      */
     public function update(Request $request, $id)
     {
-        //
+        
     }
 
     /**

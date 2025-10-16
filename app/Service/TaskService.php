@@ -3,53 +3,44 @@
 namespace App\Service;
 
 use App\Models\Task;
+use App\Traits\ApiResponse;
+use Exception;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
 class TaskService
 {
 
+    use ApiResponse;
+
     public function createTask($data)
     {
-        try {
-           $validador =  Validator::make($data, [
-                'tarefa' => 'required|string',
-                'data_vencimento' => 'required|date',
-            ], [
-                'tarefa.required' => 'A tarefa é obrigatoria',
-                'data_vencimento.required' => 'Data de vencimento é obrigatoria',
-            ]);
+        $user = auth()->user();
 
-            if($validador->fails()){
-                return ['success' => false, 'errors' => $validador->errors()]; 
-            }
+        $task = $user->task()->create([
+            'tarefa' => $data['tarefa'],
+            'data_vencimento' => $data['data_vencimento']
+        ]);
 
-            $user = auth()->user();
-            $validated = $validador->validated();
-            $newTask = $user->task()->create($validated);
-            return $newTask;
-        } catch (ValidationException $e) {
-            return ['errors' => $e->errors()];
-        }
+        return $task;
     }
 
     public function updateTask($data, $idTask)
     {
-        try {
-            Validator::validate($data, [
-                'tarefa' => 'required|string',
-                'data_vencimento' => 'required|date'
-            ], [
-                'tarefa.required' => 'A tarefa é obrigatoria',
-                'data_vencimento.required' => 'Data de vencimento é obrigatoria'
-            ]);
+        $task = Task::find($idTask);
+        $user = auth()->user();
 
-            $task = Task::find($idTask);
-            $task->update($data);
-
-            return $task;
-        } catch (ValidationException $e) {
-            return ['erros' => $e->errors()];
+        if ($user->id != $task->user_id) {
+            throw new Exception('Você não tem permissão para editar este recurso', 401);
         }
+
+        $task->update([
+            'tarefa' => $data['tarefa'],
+            'data_vencimento' => $data['data_vencimento']
+        ]);
+
+        return $task->refresh();
+
+        
     }
 }

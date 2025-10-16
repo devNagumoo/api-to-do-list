@@ -7,14 +7,14 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\TaskResource;
 use App\Models\Task;
 use App\Service\TaskService;
-use App\Traits\Traits;
+use App\Traits\ApiResponse;
 use Exception;
-use Illuminate\Http\ResponseTrait;
+use Illuminate\Support\Facades\Validator;
 
 class TaskController extends Controller
 {
 
-    use Traits;
+    use ApiResponse;
 
     private $service;
 
@@ -35,7 +35,7 @@ class TaskController extends Controller
         $task = Task::find($idTask);
 
         if (!$task) {
-            return $this->messageResponse('A tarefa não foi encontrada', 404);
+            return $this->message('A tarefa não foi encontrada', 404);
         }
 
         return new TaskResource($task);
@@ -43,25 +43,71 @@ class TaskController extends Controller
 
     public function store(Request $request)
     {
-        $newTask = $this->service->createTask($request->all());
+        $validador =  Validator::make($request->all(), [
+            'tarefa' => 'required|string',
+            'data_vencimento' => 'required|date',
+        ], [
+            'tarefa.required' => 'A tarefa é obrigatoria',
+            'data_vencimento.required' => 'Data de vencimento é obrigatoria',
+        ]);
 
-        if (is_array($newTask)) {
-            return response()->json($newTask, 400);
+        if ($validador->fails()) {
+            return $this->errors(
+                'Ocorreu erros na validação',
+                400,
+                $validador->errors()->toArray()
+            );
         }
 
-        return new TaskResource($newTask);
-        
+        try {
+            $task = $this->service->createTask($request->all());
+            return $this->message(
+                'Tarefa criada com sucesso.',
+                201,
+                new TaskResource($task)
+            );
+        } catch (Exception $e) {
+            return $this->errors(
+                'Ocorreu erro interno',
+                $e->getCode(),
+                $e->getMessage()
+            );
+        }
     }
 
     public function update(Request $request, $idTask)
     {
-        $updateTask = $this->service->updateTask($request->all(), $idTask);
+        $validador = Validator::make($request->all(), [
+            'tarefa' =>  'required|string',
+            'data_vencimento' => 'required|date'
+        ], [
+            'tarefa.required' => 'A tarefa é obrigatoria',
+            'data_vencimento.required' => 'A data de vencimento é obrigatoria',
+            'data_vencimento.date' => 'O formato de data é invalido'
+        ]);
 
-        if (is_array($updateTask)) {
-            return response()->json($updateTask);
+        if ($validador->fails()) {
+            return $this->errors(
+                'Ocorreram errors na validação0',
+                400,
+                $validador->errors()->toArray()
+            );
         }
 
-        return new TaskResource($updateTask);
+        try {
+            $updateTask = $this->service->updateTask($request->all(), $idTask);
+
+            return $this->message(
+                'A tarefa foi atualizada com sucesso.',
+                200,
+                new TaskResource($updateTask)
+            );
+        } catch (Exception $e) {
+            return $this->response(
+                $e->getMessage(),
+                $e->getCode()
+            );
+        }
     }
 
     public function delete($idTask) {}

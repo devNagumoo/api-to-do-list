@@ -5,7 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Service\AuthService;
-use App\Traits\Traits;
+use App\Traits\ApiResponse;
+
 
 use Tymon\JWTAuth\Facades\JWTAuth;
 
@@ -13,7 +14,7 @@ use Tymon\JWTAuth\Facades\JWTAuth;
 class AuthController extends Controller
 {
     private $serviceAuth;
-    use Traits;
+    use ApiResponse;
 
     public function __construct(AuthService $service)
     {
